@@ -14,7 +14,7 @@ from google.protobuf.message import DecodeError
 
 app = Flask(__name__)
 
-def load_tokens(server_name):
+def load_tokens(region):
     try:
         if server_name == "IND":
             with open("token_ind.json", "r") as f:
@@ -76,9 +76,9 @@ async def send_request(encrypted_uid, token, url):
         app.logger.error(f"Exception in send_request: {e}")
         return None
 
-async def send_multiple_requests(uid, server_name, url):
+async def send_multiple_requests(uid, region, url):
     try:
-        region = server_name
+        region = region
         protobuf_message = create_protobuf_message(uid, region)
         if protobuf_message is None:
             app.logger.error("Failed to create protobuf message.")
@@ -88,7 +88,7 @@ async def send_multiple_requests(uid, server_name, url):
             app.logger.error("Encryption failed.")
             return None
         tasks = []
-        tokens = load_tokens(server_name)
+        tokens = load_tokens(region)
         if tokens is None:
             app.logger.error("Failed to load tokens.")
             return None
@@ -118,7 +118,7 @@ def enc(uid):
     encrypted_uid = encrypt_message(protobuf_data)
     return encrypted_uid
 
-def make_request(encrypt, server_name, token):
+def make_request(encrypt, region, token):
     try:
         if server_name == "IND":
             url = "https://client.ind.freefiremobile.com/GetPlayerPersonalShow"
@@ -164,13 +164,13 @@ def decode_protobuf(binary):
 @app.route('/like', methods=['GET'])
 def handle_requests():
     uid = request.args.get("uid")
-    server_name = request.args.get("server_name", "").upper()
+    region = request.args.get("region", "").upper()
     if not uid or not server_name:
         return jsonify({"error": "UID and server_name are required"}), 400
 
     try:
         def process_request():
-            tokens = load_tokens(server_name)
+            tokens = load_tokens(region)
             if tokens is None:
                 raise Exception("Failed to load tokens.")
             token = tokens[0]['token']
@@ -178,7 +178,7 @@ def handle_requests():
             if encrypted_uid is None:
                 raise Exception("Encryption of UID failed.")
 
-            before = make_request(encrypted_uid, server_name, token)
+            before = make_request(encrypted_uid, server_na, token)
             if before is None:
                 raise Exception("Failed to retrieve initial player info.")
             try:
